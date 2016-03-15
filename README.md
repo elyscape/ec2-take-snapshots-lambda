@@ -14,8 +14,8 @@ eg. {'key': 'value'} or {'key1': 'value1', 'key2': 'value2', ...}
 SNAPSHOT_TAGS - Dictionary of tags to apply to the created snapshots.
 eg. {'key': 'value'} or {'key1': 'value1', 'key2': 'value2', ...} 
 
-REGION - AWS region in which the volumes exist
-eg. "us-east-1"
+REGIONS - AWS regions in which the volumes exist
+eg. ["us-east-1"]
 
 ## Configure Lambda function
 ### IAM Role Policy

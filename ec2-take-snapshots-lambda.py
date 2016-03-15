@@ -17,8 +17,8 @@ VOLUME_TAGS = {}
 # eg. {'key': 'value'} or {'key1': 'value1', 'key2': 'value2', ...}
 SNAPSHOT_TAGS = {}
 
-# AWS region in which the volumes exist
-REGION = "us-east-1"
+# AWS regions in which the volumes exist
+REGIONS = ["us-east-1"]
 
 
 def take_snapshots(volume, tags_kwargs):
@@ -76,37 +76,38 @@ def main(event, context):
 
     NOOP = event['noop'] if 'noop' in event else False
     NOT_REALLY_STR = " (not really)" if NOOP is not False else ""
-    ec2 = resource("ec2", region_name=REGION)
-    tags_kwargs = process_tags()
-    snap_count = 0
+    for region in REGIONS:
+        ec2 = resource("ec2", region_name=region)
+        tags_kwargs = process_tags()
+        snap_count = 0
 
-    if VOLUMES and not VOLUME_TAGS:
-        if len(VOLUMES) == VOLUMES.count("all"):
-            all_volumes = ec2.volumes.all()
-            for volume in all_volumes:
-                take_snapshots(volume, tags_kwargs)
-                snap_count += 1
-        else:
-            for volume_id in VOLUMES:
-                volume = ec2.Volume(volume_id)
-                try:
-                    volume.describe_status()
-                except ClientError:
-                    print("No volumes found with the ID {}".format(volume_id))
-                else:
+        if VOLUMES and not VOLUME_TAGS:
+            if len(VOLUMES) == VOLUMES.count("all"):
+                all_volumes = ec2.volumes.all()
+                for volume in all_volumes:
                     take_snapshots(volume, tags_kwargs)
                     snap_count += 1
-        print_summary(snap_count)
-    elif VOLUME_TAGS and not VOLUMES:
-        tag_volumes = get_tag_volumes(ec2)
-        if tag_volumes.count > 0:
-            for tag_volume in tag_volumes:
-                take_snapshots(tag_volume, tags_kwargs)
-                snap_count += 1
+            else:
+                for volume_id in VOLUMES:
+                    volume = ec2.Volume(volume_id)
+                    try:
+                        volume.describe_status()
+                    except ClientError:
+                        print("No volumes found with the ID {}".format(volume_id))
+                    else:
+                        take_snapshots(volume, tags_kwargs)
+                        snap_count += 1
+            print_summary(snap_count)
+        elif VOLUME_TAGS and not VOLUMES:
+            tag_volumes = get_tag_volumes(ec2)
+            if tag_volumes.count > 0:
+                for tag_volume in tag_volumes:
+                    take_snapshots(tag_volume, tags_kwargs)
+                    snap_count += 1
+            else:
+                print("No volumes found with the given tags.")
+            print_summary(snap_count)
         else:
-            print("No volumes found with the given tags.")
-        print_summary(snap_count)
-    else:
-        print("You must populate either the VOLUMES OR"
-              " the VOLUME_TAGS variable."
-              )
+            print("You must populate either the VOLUMES OR"
+                  " the VOLUME_TAGS variable."
+                  )
